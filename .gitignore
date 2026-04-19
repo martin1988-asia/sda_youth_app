@@ -49,3 +49,4 @@ firebase-admin-setup/serviceAccountKey.json
 
 # Local utility scripts (optional)
 scripts/
+serviceAccountKey.json
