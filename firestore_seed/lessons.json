@@ -1,0 +1,32 @@
+{
+  "lessons": {
+    "week1": {
+      "weekNumber": 1,
+      "title": "God’s Creation",
+      "memoryVerse": "Genesis 1:1",
+      "summary": "In the beginning, God created the heavens and the earth. This week we reflect on the beauty and purpose of creation.",
+      "date": "2026-04-13"
+    },
+    "week2": {
+      "weekNumber": 2,
+      "title": "Faith and Obedience",
+      "memoryVerse": "Hebrews 11:8",
+      "summary": "By faith Abraham obeyed when he was called to go out to a place that he was to receive as an inheritance.",
+      "date": "2026-04-20"
+    },
+    "week3": {
+      "weekNumber": 3,
+      "title": "The Ten Commandments",
+      "memoryVerse": "Exodus 20:3",
+      "summary": "God gave His law to guide His people. This week we study the commandments and their relevance today.",
+      "date": "2026-04-27"
+    },
+    "week4": {
+      "weekNumber": 4,
+      "title": "Jesus Our Savior",
+      "memoryVerse": "John 3:16",
+      "summary": "For God so loved the world that He gave His only Son. This week we focus on salvation through Christ.",
+      "date": "2026-05-04"
+    }
+  }
+}

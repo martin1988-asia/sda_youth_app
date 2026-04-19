@@ -1,0 +1,80 @@
+// Firebase Storage Rules for SDA Youth App
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // --- USER UPLOADS ---
+    match /user_uploads/{userId}/{allPaths=**} {
+      // Owner can read/write their own files
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // --- POST MEDIA (images/videos) ---
+    match /post_media/{fileName} {
+      // Publicly readable (feed display)
+      allow read: if true;
+
+      // Only authenticated users can upload
+      allow write: if request.auth != null;
+
+      // Only owner can delete their own file (UID embedded in filename)
+      allow delete: if request.auth != null
+        && request.auth.uid == fileName.split('_')[0];
+    }
+
+    // --- POST THUMBNAILS ---
+    match /post_thumbnails/{fileName} {
+      allow read: if true;
+      allow write: if request.auth != null;
+      allow delete: if request.auth != null
+        && request.auth.uid == fileName.split('_')[0];
+    }
+
+    // --- PROFILE PHOTOS ---
+    match /profile_photos/{fileName} {
+      allow read: if true;
+      allow write: if request.auth != null;
+      allow delete: if request.auth != null
+        && request.auth.uid == fileName.split('_')[0];
+    }
+
+    // --- EVENT MEDIA ---
+    match /events/{eventId}/media/{allPaths=**} {
+      // Everyone can read event flyers, posters, etc.
+      allow read: if true;
+
+      // Only the event organizer can upload/update/delete event media
+      allow write, delete: if request.auth != null
+        && request.auth.uid == eventId;
+    }
+
+    // --- GROUP MEDIA ---
+    match /groups/{groupId}/media/{allPaths=**} {
+      // Group members can read shared files
+      allow read: if request.auth != null && request.auth.uid in resource.data.memberIds;
+
+      // Only the group owner can upload/update/delete group media
+      allow write, delete: if request.auth != null && request.auth.uid == resource.data.ownerId;
+    }
+
+    // --- LESSON MEDIA ---
+    match /lessons/{lessonId}/media/{allPaths=**} {
+      // Everyone can read lesson PDFs/videos
+      allow read: if true;
+
+      // Only admins can upload/update/delete lesson media
+      allow write, delete: if request.auth != null && request.auth.token.role == "admin";
+    }
+
+    // --- ADMIN CONTENT ---
+    match /admin/{allPaths=**} {
+      // Only admins can read/write admin-only files
+      allow read, write: if request.auth != null && request.auth.token.role == "admin";
+    }
+
+    // --- DEFAULT DENY ---
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}
