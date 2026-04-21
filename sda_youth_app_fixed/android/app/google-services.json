@@ -1,0 +1,46 @@
+{
+  "project_info": {
+    "project_number": "599849169513",
+    "project_id": "sda-youth-app",
+    "storage_bucket": "sda-youth-app.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:599849169513:android:db6c3945c0ae48a48468f8",
+        "android_client_info": {
+          "package_name": "com.example.sda_youth_app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "599849169513-3vegvbageg279caarml89uj4nkj5ihi4.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAlbwibfh6eaLNMe8X5JYItk7-DZpOi14o"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "599849169513-3vegvbageg279caarml89uj4nkj5ihi4.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "599849169513-ao90da047nvj1odrhojs6kbqcrcknfb7.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.sdaYouthApp"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
