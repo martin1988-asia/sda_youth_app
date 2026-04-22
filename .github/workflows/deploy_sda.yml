@@ -1,4 +1,4 @@
-name: Deploy SDA Youth App
+name: Deploy SDA Youth App (Manual)
 
 on:
   push:
