@@ -5,7 +5,7 @@ on:
     branches:
       - main
       - master
-  workflow_dispatch:   # allows manual runs from the Actions tab
+  workflow_dispatch:   # allows manual runs from the Actions tab or gh CLI
 
 jobs:
   deploy:
