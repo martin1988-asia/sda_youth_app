@@ -1,0 +1,48 @@
+name: Deploy SDA Youth App Manual
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  workflow_dispatch:    # allows manual runs from Actions tab or gh CLI
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout source repo
+        uses: actions/checkout@v4
+
+      - name: Verify branch safety
+        run: |
+          current_branch=$(git rev-parse --abbrev-ref HEAD)
+          if [ "$current_branch" != "main" ] && [ "$current_branch" != "master" ]; then
+            echo "❌ Deployment aborted: not on main/master branch."
+            exit 1
+          fi
+          echo "✅ Branch check passed: on $current_branch."
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.19.0'
+
+      - name: Build Flutter web release
+        run: |
+          flutter clean
+          flutter pub get
+          flutter build web --release --base-href /sda_youth_app/
+
+      - name: Deploy to gh-pages
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git clone --branch gh-pages https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/martin1988-asia/sda_youth_app.git deploy-repo
+          rm -rf deploy-repo/*
+          cp -r build/web/* deploy-repo/
+          cd deploy-repo
+          git add -A
+          git commit -m "Automated deploy from GitHub Actions"
+          git push origin gh-pages --force
