@@ -1,0 +1,353 @@
+import 'package:sda_youth_app/core/user_role.dart';
+import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:firebase_crashlytics/firebase_crashlytics.dart';
+import 'package:firebase_analytics/firebase_analytics.dart';
+import 'package:go_router/go_router.dart'; // ✅ GoRouter
+
+enum UserStatus { active, banned }
+
+class AppDrawer extends StatelessWidget {
+  const AppDrawer({super.key});
+
+  Future<void> _handleLogout(BuildContext context) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+    final userName = user.displayName ?? "User";
+
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text("Confirm Logout"),
+        content: const Text("Are you sure you want to log out?"),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text("Cancel")),
+          ElevatedButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text("Logout"),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      try {
+        await FirebaseAuth.instance.signOut();
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setBool('rememberMe', false);
+
+        FirebaseCrashlytics.instance.log("User $userName logged out via drawer");
+        FirebaseAnalytics.instance.logEvent(name: "logout", parameters: {"userName": userName});
+
+        if (!context.mounted) return; // ✅ safe check
+
+        messenger.showSnackBar(
+          SnackBar(content: Text("Goodbye, $userName — you have been logged out."), duration: const Duration(seconds: 2)),
+        );
+        context.go('/login'); // ✅ replace stack on logout
+      } catch (e, stack) {
+        FirebaseCrashlytics.instance.recordError(e, stack);
+        if (!context.mounted) return; // ✅ safe check
+        messenger.showSnackBar(SnackBar(content: Text("Logout failed: $e")));
+      }
+    }
+  }
+
+  Future<Map<String, dynamic>> _getUserData() async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return {"role": UserRole.user, "status": UserStatus.active};
+
+    try {
+      final doc = await FirebaseFirestore.instance.collection('users').doc(uid).get();
+      final data = doc.data() ?? {};
+
+      final role = UserRole.values.firstWhere((r) => r.name == (data['role'] ?? 'user'), orElse: () => UserRole.user);
+      final status = UserStatus.values.firstWhere((s) => s.name == (data['status'] ?? 'active'), orElse: () => UserStatus.active);
+
+      return {"role": role, "status": status};
+    } catch (e, stack) {
+      FirebaseCrashlytics.instance.recordError(e, stack);
+      return {"role": UserRole.user, "status": UserStatus.active};
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<Map<String, dynamic>>(
+      future: _getUserData(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Drawer(child: Center(child: CircularProgressIndicator()));
+        }
+
+        final role = snapshot.data?['role'] ?? UserRole.user;
+        final status = snapshot.data?['status'] ?? UserStatus.active;
+
+        // 🚫 Banned users: only logout
+        if (status == UserStatus.banned) {
+          return Drawer(
+            child: SafeArea(
+              child: ListView(
+                padding: EdgeInsets.zero,
+                children: [
+                  AnimatedDrawerHeader(role: role),
+                  const Divider(),
+                  AnimatedDrawerItem(index: 0, icon: Icons.logout, title: "Logout", route: '/logout', onTapOverride: () => _handleLogout(context)),
+                ],
+              ),
+            ),
+          );
+        }
+
+        // ✅ Role-specific items
+        final items = <Widget>[
+          AnimatedDrawerHeader(role: role),
+          AnimatedDrawerItem(index: 1, icon: Icons.home, title: "Home", route: '/home'),
+          AnimatedDrawerItem(index: 2, icon: Icons.people, title: "Friends", route: '/friends'),
+          AnimatedDrawerItem(index: 3, icon: Icons.search, title: "Search", route: '/search'),
+          AnimatedDrawerItem(index: 4, icon: Icons.person, title: "My Profile", route: '/profile'),
+          AnimatedDrawerItem(index: 5, icon: Icons.article, title: "My Posts", route: '/my_posts'),
+          AnimatedDrawerItem(index: 6, icon: Icons.group, title: "Community", route: '/community'),
+          AnimatedDrawerItem(index: 7, icon: Icons.event, title: "Events", route: '/events'),
+          AnimatedDrawerItem(index: 8, icon: Icons.message, title: "Messages", route: '/messages'),
+          AnimatedDrawerItem(index: 9, icon: Icons.notifications, title: "Notifications", route: '/notifications'),
+          AnimatedDrawerItem(index: 10, icon: Icons.book, title: "Devotionals", route: '/devotionals'),
+          AnimatedDrawerItem(index: 11, icon: Icons.book_online, title: "Bible", route: '/bible'),
+          AnimatedDrawerItem(index: 12, icon: Icons.church, title: "Prayer", route: '/prayer'),
+          AnimatedDrawerItem(index: 13, icon: Icons.star, title: "Testimonies", route: '/testimonies'),
+          AnimatedDrawerItem(index: 14, icon: Icons.school, title: "Lessons", route: '/lessons'),
+          AnimatedDrawerItem(index: 15, icon: Icons.gamepad, title: "Gamification", route: '/gamification'),
+          AnimatedDrawerItem(index: 16, icon: Icons.lightbulb, title: "Learning", route: '/learning'),
+          AnimatedDrawerItem(index: 17, icon: Icons.hub, title: "Resource Hub", route: '/resource_hub'),
+          AnimatedDrawerItem(index: 18, icon: Icons.announcement, title: "Announcements", route: '/announcements'),
+          const Divider(),
+          AnimatedDrawerItem(index: 19, icon: Icons.feedback, title: "Feedback", route: '/feedback'),
+          AnimatedDrawerItem(index: 20, icon: Icons.support, title: "Support", route: '/support'),
+          AnimatedDrawerItem(index: 21, icon: Icons.info, title: "About", route: '/about'),
+          const Divider(),
+          AnimatedDrawerItem(index: 22, icon: Icons.settings, title: "Settings", route: '/settings'),
+          AnimatedDrawerItem(index: 23, icon: Icons.privacy_tip, title: "Privacy & Data", route: '/privacy_data'),
+          AnimatedDrawerItem(index: 24, icon: Icons.notifications_active, title: "Notifications Preferences", route: '/notifications_preferences'),
+          AnimatedDrawerItem(index: 25, icon: Icons.security, title: "Auth Security", route: '/auth_security'),
+          AnimatedDrawerItem(index: 26, icon: Icons.accessibility, title: "Accessibility", route: '/accessibility'),
+          AnimatedDrawerItem(index: 27, icon: Icons.data_saver_on, title: "Data Saver", route: '/data_saver'),
+          AnimatedDrawerItem(index: 28, icon: Icons.sync, title: "Sync Reset", route: '/sync_reset'),
+          AnimatedDrawerItem(index: 29, icon: Icons.developer_mode, title: "Developer Options", route: '/developer_options'),
+          AnimatedDrawerItem(index: 30, icon: Icons.timer, title: "Quiet Hours", route: '/quiet_hours'),
+          AnimatedDrawerItem(index: 31, icon: Icons.manage_accounts, title: "Session Management", route: '/session_management'),
+        ];
+
+        // 🔐 Admin-only section
+        if (role == UserRole.admin) {
+          items.addAll([
+            const Divider(),
+            AnimatedDrawerItem(index: 32, icon: Icons.admin_panel_settings, title: "Admin Dashboard", route: '/admin_dashboard'),
+            AnimatedDrawerItem(index: 33, icon: Icons.dashboard_customize, title: "Admin Overview", route: '/admin_overview'),
+            AnimatedDrawerItem(index: 34, icon: Icons.people, title: "Manage Users", route: '/manage_users'),
+            AnimatedDrawerItem(index: 35, icon: Icons.analytics, title: "Analytics", route: '/analytics'),
+            AnimatedDrawerItem(index: 36, icon: Icons.content_copy, title: "Manage Content", route: '/manage_content'),
+            AnimatedDrawerItem(index: 37, icon: Icons.shield, title: "Moderation", route: '/moderation'),
+          ]);
+        } else if (role == UserRole.editor) {
+          items.addAll([
+            const Divider(),
+            AnimatedDrawerItem(index: 38, icon: Icons.content_copy, title: "Manage Content", route: '/manage_content'),
+          ]);
+        } else if (role == UserRole.moderator) {
+          items.addAll([
+            const Divider(),
+            AnimatedDrawerItem(index: 39, icon: Icons.shield, title: "Moderation", route: '/moderation'),
+          ]);
+        }
+
+        // 🚪 Logout always visible
+        items.addAll([
+          const Divider(),
+          AnimatedDrawerItem(
+            index: 40,
+            icon: Icons.logout,
+            title: "Logout",
+            route: '/logout',
+            onTapOverride: () => _handleLogout(context),
+          ),
+        ]);
+
+        return Drawer(
+          child: SafeArea(
+            child: ListView(
+              padding: EdgeInsets.zero,
+              children: items,
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+/// 🔥 Animated Drawer Header with role-aware gradient + subtitle
+class AnimatedDrawerHeader extends StatefulWidget {
+  final UserRole role;
+  const AnimatedDrawerHeader({super.key, required this.role});
+
+  @override
+  State<AnimatedDrawerHeader> createState() => _AnimatedDrawerHeaderState();
+}
+
+class _AnimatedDrawerHeaderState extends State<AnimatedDrawerHeader>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<Color?> _color1;
+  late Animation<Color?> _color2;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      duration: const Duration(seconds: 6),
+      vsync: this,
+    )..repeat(reverse: true);
+
+    List<Color> colors;
+    switch (widget.role) {
+      case UserRole.admin:
+        colors = [Colors.indigo, Colors.blueGrey];
+        break;
+      case UserRole.editor:
+        colors = [Colors.cyan, Colors.teal];
+        break;
+      case UserRole.moderator:
+        colors = [Colors.orange, Colors.deepOrange];
+        break;
+      default:
+        colors = [Colors.teal, Colors.green];
+    }
+
+    _color1 = ColorTween(begin: colors[0], end: colors[1]).animate(_controller);
+    _color2 = ColorTween(begin: colors[1], end: colors[0]).animate(_controller);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    String subtitle;
+    switch (widget.role) {
+      case UserRole.admin:
+        subtitle = "Admin Panel";
+        break;
+      case UserRole.editor:
+        subtitle = "Content Editor";
+        break;
+      case UserRole.moderator:
+        subtitle = "Moderator Tools";
+        break;
+      default:
+        subtitle = "Youth Member";
+    }
+
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) {
+        return DrawerHeader(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [_color1.value ?? Colors.teal, _color2.value ?? Colors.green],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Image.asset('assets/sda_logo.png', height: 40, semanticLabel: "SDA Youth Logo"),
+                  const SizedBox(width: 10),
+                  const Text(
+                    "SDA Youth App",
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Text(
+                subtitle,
+                style: const TextStyle(
+                  color: Colors.yellowAccent,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+/// 🎬 Animated Drawer Item with fade + slide-in
+class AnimatedDrawerItem extends StatelessWidget {
+  final int index;
+  final IconData icon;
+  final String title;
+  final String route;
+  final VoidCallback? onTapOverride;
+
+  const AnimatedDrawerItem({
+    super.key,
+    required this.index,
+    required this.icon,
+    required this.title,
+    required this.route,
+    this.onTapOverride,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final animationDuration = Duration(milliseconds: 300 + (index * 50));
+
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0, end: 1),
+      duration: animationDuration,
+      builder: (context, value, child) {
+        return Opacity(
+          opacity: value,
+          child: Transform.translate(
+            offset: Offset((1 - value) * -30, 0),
+            child: child,
+          ),
+        );
+      },
+      child: ListTile(
+        leading: Icon(icon, color: Colors.teal, semanticLabel: title),
+        title: Text(title, style: const TextStyle(color: Colors.black87)),
+        onTap: () {
+          FirebaseAnalytics.instance.logEvent(name: "drawer_navigation", parameters: {
+            "title": title,
+            "route": route,
+          });
+          if (onTapOverride != null) {
+            onTapOverride!();
+          } else {
+            context.push(route); // ✅ push for normal navigation
+          }
+        },
+      ),
+    );
+  }
+}
+

@@ -1,0 +1,28 @@
+{
+  "announcements": {
+    "announcement1": {
+      "title": "Youth Conference Reminder",
+      "message": "The SDA Youth Conference 2026 will be held in Walvis Bay on May 1. Don’t miss it!",
+      "date": "2026-04-13",
+      "category": "Events"
+    },
+    "announcement2": {
+      "title": "Mission Trip Registration",
+      "message": "Registration for the Oshakati Mission Trip (June 15) is now open. Contact your youth leader.",
+      "date": "2026-04-14",
+      "category": "Mission"
+    },
+    "announcement3": {
+      "title": "Choir Practice",
+      "message": "Youth Choir practice every Wednesday at 18:00 in the church hall.",
+      "date": "2026-04-15",
+      "category": "Groups"
+    },
+    "announcement4": {
+      "title": "Sports Day",
+      "message": "Join us for Youth Sports Day on September 5 at Walvis Bay Stadium.",
+      "date": "2026-04-16",
+      "category": "Events"
+    }
+  }
+}

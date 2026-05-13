@@ -1,0 +1,598 @@
+import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_crashlytics/firebase_crashlytics.dart';
+import 'package:firebase_analytics/firebase_analytics.dart';
+import 'package:sda_youth_app/core/role_guard.dart';
+import 'package:sda_youth_app/core/user_role.dart';
+import 'package:sda_youth_app/notifications_helper.dart';
+
+class MyPostsPage extends StatefulWidget {
+  const MyPostsPage({super.key});
+
+  @override
+  State<MyPostsPage> createState() => _MyPostsPageState();
+}
+
+class _MyPostsPageState extends State<MyPostsPage> {
+  final _searchController = TextEditingController();
+  bool _loading = false;
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _removeFriend(
+    BuildContext context,
+    String uid,
+    String friendId,
+    String username,
+  ) async {
+    setState(() => _loading = true);
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(uid)
+          .collection('friends')
+          .doc(friendId)
+          .delete();
+
+      await NotificationsHelper.sendGeneralNotification(
+        userId: friendId,
+        title: "Friend Removed",
+        body: "$username has been removed from your friends list",
+      );
+
+      FirebaseAnalytics.instance.logEvent(name: 'friend_removed');
+      if (!context.mounted) return;
+      messenger.showSnackBar(SnackBar(content: Text("Removed $username")));
+    } catch (e, stack) {
+      FirebaseCrashlytics.instance.recordError(e, stack);
+      if (!context.mounted) return;
+      messenger.showSnackBar(SnackBar(content: Text("Failed to remove friend: $e")));
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _sendFriendRequest(
+    BuildContext context,
+    String uid,
+    String targetUsername,
+  ) async {
+    setState(() => _loading = true);
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      final targetQuery = await FirebaseFirestore.instance
+          .collection('users')
+          .where('username', isEqualTo: targetUsername.trim())
+          .limit(1)
+          .get();
+
+      if (targetQuery.docs.isEmpty) {
+        if (!context.mounted) return;
+        messenger.showSnackBar(const SnackBar(content: Text("User not found")));
+        return;
+      }
+
+      final targetUser = targetQuery.docs.first;
+      final targetId = targetUser.id;
+
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(targetId)
+          .collection('requests')
+          .doc(uid)
+          .set({
+        'fromUserId': uid,
+        'timestamp': FieldValue.serverTimestamp(),
+      });
+
+      await NotificationsHelper.sendGeneralNotification(
+        userId: targetId,
+        title: "Friend Request",
+        body: "You have a new friend request",
+      );
+
+      FirebaseAnalytics.instance.logEvent(name: 'friend_request_sent');
+      if (!context.mounted) return;
+      messenger.showSnackBar(const SnackBar(content: Text("Friend request sent")));
+    } catch (e, stack) {
+      FirebaseCrashlytics.instance.recordError(e, stack);
+      if (!context.mounted) return;
+      messenger.showSnackBar(SnackBar(content: Text("Failed to send request: $e")));
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _acceptRequest(
+    BuildContext context,
+    String uid,
+    String requesterId,
+  ) async {
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(uid)
+          .collection('friends')
+          .doc(requesterId)
+          .set({'timestamp': FieldValue.serverTimestamp()});
+
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(uid)
+          .collection('requests')
+          .doc(requesterId)
+          .delete();
+
+      FirebaseAnalytics.instance.logEvent(name: 'friend_request_accepted');
+      if (!context.mounted) return;
+      messenger.showSnackBar(const SnackBar(content: Text("Friend request accepted")));
+    } catch (e, stack) {
+      FirebaseCrashlytics.instance.recordError(e, stack);
+      if (!context.mounted) return;
+      messenger.showSnackBar(SnackBar(content: Text("Failed to accept request: $e")));
+    }
+  }
+
+  Future<void> _declineRequest(
+    BuildContext context,
+    String uid,
+    String requesterId,
+  ) async {
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(uid)
+          .collection('requests')
+          .doc(requesterId)
+          .delete();
+
+      FirebaseAnalytics.instance.logEvent(name: 'friend_request_declined');
+      if (!context.mounted) return;
+      messenger.showSnackBar(const SnackBar(content: Text("Friend request declined")));
+    } catch (e, stack) {
+      FirebaseCrashlytics.instance.recordError(e, stack);
+      if (!context.mounted) return;
+      messenger.showSnackBar(SnackBar(content: Text("Failed to decline request: $e")));
+    }
+  }
+
+  void _showFriendProfile(BuildContext context, String friendId, String username) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.black87,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        return FutureBuilder<DocumentSnapshot>(
+          future: FirebaseFirestore.instance.collection('users').doc(friendId).get(),
+          builder: (ctx, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(20),
+                  child: CircularProgressIndicator(color: Colors.yellowAccent),
+                ),
+              );
+            }
+            if (snapshot.hasError) {
+              return const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(20),
+                  child: Text("Error loading profile",
+                      style: TextStyle(color: Colors.white70)),
+                ),
+              );
+            }
+            if (!snapshot.hasData || !snapshot.data!.exists) {
+              return const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(20),
+                  child: Text("Profile not found",
+                      style: TextStyle(color: Colors.white70)),
+                ),
+              );
+            }
+
+            final data = snapshot.data!.data() as Map<String, dynamic>;
+            final bio = data['bio'] ?? "No bio available";
+
+            return Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Hero(
+                    tag: 'app_logo',
+                    child: Image.asset('assets/sda_logo.png',
+                        height: 60, semanticLabel: "SDA Youth Logo"),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(username,
+                      style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.yellowAccent)),
+                  const SizedBox(height: 8),
+                  Text(bio,
+                      style: const TextStyle(color: Colors.white70),
+                      textAlign: TextAlign.center),
+                  const SizedBox(height: 16),
+                  StreamBuilder<QuerySnapshot>(
+                    stream: FirebaseFirestore.instance
+                        .collection('users')
+                        .doc(friendId)
+                        .collection('friends')
+                        .snapshots(),
+                    builder: (ctx, mutualSnapshot) {
+                      if (mutualSnapshot.connectionState == ConnectionState.waiting) {
+                        return const CircularProgressIndicator(color: Colors.yellowAccent);
+                      }
+                      if (!mutualSnapshot.hasData || mutualSnapshot.data!.docs.isEmpty) {
+                        return const Text("No mutual friends",
+                            style: TextStyle(color: Colors.white70));
+                      }
+
+                      final mutualFriends = mutualSnapshot.data!.docs;
+                      return Column(
+                        children: [
+                          const Text("Mutual Friends",
+                              style: TextStyle(
+                                  color: Colors.yellowAccent,
+                                  fontWeight: FontWeight.bold)),
+                          const SizedBox(height: 8),
+                          SizedBox(
+                            height: 100,
+                            child: ListView.builder(
+                              scrollDirection: Axis.horizontal,
+                              itemCount: mutualFriends.length,
+                              itemBuilder: (ctx, index) {
+                                final mf = mutualFriends[index].id;
+                                return Padding(
+                                  padding: const EdgeInsets.symmetric(horizontal: 6),
+                                  child: CircleAvatar(
+                                    backgroundColor: Colors.blueAccent,
+                                    child: Text(
+                                      mf[0].toUpperCase(),
+                                      style: const TextStyle(color: Colors.white),
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                        ],
+                      );
+                    },
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+
+    if (uid == null) {
+      return const Scaffold(
+        body: Center(
+          child: Text(
+            "Please log in to view your friends",
+            style: TextStyle(color: Colors.white),
+          ),
+        ),
+      );
+    }
+
+    return RoleGuard(
+      allowedRoles: [UserRole.user],
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text(
+            "Friends",
+            style: TextStyle(color: Colors.yellowAccent),
+          ),
+          backgroundColor: Colors.teal,
+        ),
+        body: Stack(
+          fit: StackFit.expand,
+          children: [
+            Image.asset('assets/background.jpg', fit: BoxFit.cover),
+            Container(color: Colors.black.withValues(alpha: 0.6)), // ✅ fixed
+            SafeArea(
+              child: Center(
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    final maxWidth =
+                        constraints.maxWidth > 600 ? 600.0 : constraints.maxWidth;
+                    return SingleChildScrollView(
+                      padding: const EdgeInsets.all(16),
+                      child: ConstrainedBox(
+                        constraints: BoxConstraints(maxWidth: maxWidth),
+                        child: Column(
+                          children: [
+                            Hero(
+                              tag: 'app_logo',
+                              child: Image.asset(
+                                'assets/sda_logo.png',
+                                height: 80,
+                                semanticLabel: "SDA Youth Logo",
+                              ),
+                            ),
+                            const SizedBox(height: 20),
+                            TextField(
+                              controller: _searchController,
+                              style: const TextStyle(color: Colors.white),
+                              decoration: InputDecoration(
+                                hintText: "Search username to add friend...",
+                                hintStyle:
+                                    const TextStyle(color: Colors.white70),
+                                suffixIcon: IconButton(
+                                  icon: const Icon(Icons.person_add,
+                                      color: Colors.yellowAccent),
+                                  onPressed: _loading
+                                      ? null
+                                      : () => _sendFriendRequest(
+                                            context,
+                                            uid,
+                                            _searchController.text,
+                                          ),
+                                ),
+                                enabledBorder: const OutlineInputBorder(
+                                  borderSide: BorderSide(color: Colors.white54),
+                                ),
+                                focusedBorder: const OutlineInputBorder(
+                                  borderSide: BorderSide(color: Colors.blueAccent),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 20),
+                            // Friends list
+                            Card(
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              color: Colors.black87,
+                              elevation: 6,
+                              child: Padding(
+                                padding: const EdgeInsets.all(20),
+                                child: StreamBuilder<QuerySnapshot>(
+                                  stream: FirebaseFirestore.instance
+                                      .collection('users')
+                                      .doc(uid)
+                                      .collection('friends')
+                                      .orderBy('username')
+                                      .snapshots(),
+                                  builder: (context, snapshot) {
+                                    if (snapshot.connectionState ==
+                                        ConnectionState.waiting) {
+                                      return const Center(
+                                          child: CircularProgressIndicator());
+                                    }
+                                    if (snapshot.hasError) {
+                                      return const Center(
+                                        child: Text(
+                                          "Error loading friends",
+                                          style:
+                                              TextStyle(color: Colors.white70),
+                                        ),
+                                      );
+                                    }
+                                    if (!snapshot.hasData ||
+                                        snapshot.data!.docs.isEmpty) {
+                                      return const Center(
+                                        child: Column(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.center,
+                                          children: [
+                                            Icon(Icons.group_off,
+                                                color: Colors.yellowAccent,
+                                                size: 48),
+                                            SizedBox(height: 12),
+                                            Text("No friends yet",
+                                                style: TextStyle(
+                                                    color: Colors.white70)),
+                                          ],
+                                        ),
+                                      );
+                                    }
+
+                                    final friends = snapshot.data!.docs;
+                                    return ListView.separated(
+                                      shrinkWrap: true,
+                                      physics:
+                                          const NeverScrollableScrollPhysics(),
+                                      itemCount: friends.length,
+                                      separatorBuilder: (context, index) =>
+                                          const Divider(color: Colors.white54), // ✅ fixed
+                                      itemBuilder: (context, index) {
+                                        final friend = friends[index].data()
+                                            as Map<String, dynamic>;
+                                        final friendId = friends[index].id;
+                                        final username = friend['username'] ??
+                                            friend['displayName'] ??
+                                            friendId;
+
+                                        return ListTile(
+                                          leading: const CircleAvatar(
+                                            child: Icon(Icons.person),
+                                          ),
+                                          title: Text(
+                                            username,
+                                            style: const TextStyle(
+                                                color: Colors.white),
+                                          ),
+                                          onTap: () => _showFriendProfile(
+                                              context, friendId, username),
+                                          trailing: IconButton(
+                                            tooltip: "Remove Friend",
+                                            icon: const Icon(Icons.remove_circle,
+                                                color: Colors.red),
+                                            onPressed: _loading
+                                                ? null
+                                                : () async {
+                                                    final confirm =
+                                                        await showDialog<bool>(
+                                                      context: context,
+                                                      builder: (ctx) =>
+                                                          AlertDialog(
+                                                        title: const Text(
+                                                            "Confirm Removal"),
+                                                        content: Text(
+                                                            "Are you sure you want to remove $username?"),
+                                                        actions: [
+                                                          TextButton(
+                                                            onPressed: () =>
+                                                                Navigator.pop(
+                                                                    ctx, false),
+                                                            child: const Text(
+                                                                "Cancel"),
+                                                          ),
+                                                          TextButton(
+                                                            onPressed: () =>
+                                                                Navigator.pop(
+                                                                    ctx, true),
+                                                            child: const Text(
+                                                                "Remove"),
+                                                          ),
+                                                        ],
+                                                      ),
+                                                    );
+                                                    if (!context.mounted) return;
+                                                    if (confirm == true) {
+                                                      _removeFriend(context, uid,
+                                                          friendId, username);
+                                                    }
+                                                  },
+                                          ),
+                                        );
+                                      },
+                                    );
+                                  },
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 20),
+                            // Requests list
+                            Card(
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              color: Colors.black54,
+                              elevation: 4,
+                              child: Padding(
+                                padding: const EdgeInsets.all(20),
+                                child: StreamBuilder<QuerySnapshot>(
+                                  stream: FirebaseFirestore.instance
+                                      .collection('users')
+                                      .doc(uid)
+                                      .collection('requests')
+                                      .snapshots(),
+                                  builder: (context, snapshot) {
+                                    if (snapshot.connectionState ==
+                                        ConnectionState.waiting) {
+                                      return const Center(
+                                          child: CircularProgressIndicator());
+                                    }
+                                    if (snapshot.hasError) {
+                                      return const Center(
+                                        child: Text(
+                                          "Error loading requests",
+                                          style:
+                                              TextStyle(color: Colors.white70),
+                                        ),
+                                      );
+                                    }
+                                    if (!snapshot.hasData ||
+                                        snapshot.data!.docs.isEmpty) {
+                                      return const Center(
+                                        child: Column(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.center,
+                                          children: [
+                                            Icon(Icons.mail_outline,
+                                                color: Colors.yellowAccent,
+                                                size: 48),
+                                            SizedBox(height: 12),
+                                            Text("No friend requests",
+                                                style: TextStyle(
+                                                    color: Colors.white70)),
+                                          ],
+                                        ),
+                                      );
+                                    }
+
+                                    final requests = snapshot.data!.docs;
+                                    return ListView.separated(
+                                      shrinkWrap: true,
+                                      physics:
+                                          const NeverScrollableScrollPhysics(),
+                                      itemCount: requests.length,
+                                      separatorBuilder: (context, index) =>
+                                          const Divider(color: Colors.white54), // ✅ fixed
+                                      itemBuilder: (context, index) {
+                                        final requesterId = requests[index].id;
+
+                                        return ListTile(
+                                          leading: const CircleAvatar(
+                                            child: Icon(Icons.person_add),
+                                          ),
+                                          title: Text(
+                                            "Request from $requesterId",
+                                            style: const TextStyle(
+                                                color: Colors.white),
+                                          ),
+                                          trailing: Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              IconButton(
+                                                tooltip: "Accept Request",
+                                                icon: const Icon(Icons.check_circle,
+                                                    color: Colors.green),
+                                                onPressed: () => _acceptRequest(
+                                                    context, uid, requesterId),
+                                              ),
+                                              IconButton(
+                                                tooltip: "Decline Request",
+                                                icon: const Icon(Icons.cancel,
+                                                    color: Colors.red),
+                                                onPressed: () => _declineRequest(
+                                                    context, uid, requesterId),
+                                              ),
+                                            ],
+                                          ),
+                                        );
+                                      },
+                                    );
+                                  },
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+

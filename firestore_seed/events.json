@@ -1,0 +1,39 @@
+{
+  "events": {
+    "youth_conference_2026": {
+      "title": "Youth Conference 2026",
+      "date": "2026-05-01",
+      "location": "Walvis Bay, Namibia",
+      "description": "A gathering of SDA youth for worship, fellowship, and empowerment.",
+      "attendees": []
+    },
+    "mission_trip_2026": {
+      "title": "Mission Trip to Oshakati",
+      "date": "2026-06-15",
+      "location": "Oshakati, Namibia",
+      "description": "Youth mission trip to support local communities with evangelism and service.",
+      "attendees": []
+    },
+    "sabbath_school_rally": {
+      "title": "Sabbath School Rally",
+      "date": "2026-07-20",
+      "location": "Windhoek, Namibia",
+      "description": "Regional rally for Sabbath School teachers and youth leaders.",
+      "attendees": []
+    },
+    "music_festival": {
+      "title": "Youth Music Festival",
+      "date": "2026-08-10",
+      "location": "Swakopmund, Namibia",
+      "description": "Celebrating youth talent through gospel music and praise.",
+      "attendees": []
+    },
+    "sports_day": {
+      "title": "Youth Sports Day",
+      "date": "2026-09-05",
+      "location": "Walvis Bay Stadium",
+      "description": "A day of fun, games, and fellowship for SDA youth.",
+      "attendees": []
+    }
+  }
+}

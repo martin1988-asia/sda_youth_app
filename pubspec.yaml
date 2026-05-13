@@ -1,0 +1,78 @@
+name: sda_youth_app
+description: "SDA Youth App with Firebase Authentication"
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.11.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+
+  # Firebase dependencies (aligned to latest stable compatible set)
+  firebase_core: ^4.7.0
+  firebase_auth: ^6.4.0
+  cloud_firestore: ^6.3.0
+  firebase_storage: ^13.3.0
+  firebase_messaging: ^16.2.0
+  firebase_crashlytics: ^5.2.0
+  firebase_analytics: ^12.3.0
+
+  # Local notifications for daily verse reminders
+  flutter_local_notifications: ^21.0.0
+
+  # Timezone support for scheduling notifications
+  timezone: ^0.11.0
+
+  # Image picker for uploading profile photos and posts
+  image_picker: ^1.1.1
+
+  # SharedPreferences for Remember Me functionality
+  shared_preferences: ^2.2.2
+
+  # URL launcher for opening links, emails, phone numbers
+  url_launcher: ^6.2.5
+
+  # Date/time formatting for notifications and feeds
+  intl: ^0.20.2
+
+  # --- Added dependencies for media posts ---
+  video_player: ^2.9.1          # video playback
+  visibility_detector: ^0.4.0+2 # auto-pause when off-screen
+  video_thumbnail: ^0.5.3       # generate video thumbnails
+
+  # ✅ Added for pretty relative time formatting
+  timeago: ^3.6.0
+
+  # ✅ Modern routing with RBAC guards
+  go_router: ^14.0.1
+
+  # ✅ Added for biometric login
+  local_auth: ^2.3.0
+
+  # ✅ Added for Google sign-in
+  google_sign_in: ^6.2.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+  mocktail: ^1.0.3   # ✅ use this for mocking in tests
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/background.jpg     # background for login/signup
+    - assets/sda_logo.png       # SDA logo
+    # - assets/logo.png          # app logo (optional)
+    # - assets/background.png    # background (optional)
+    # ❌ removed default_avatar.png — now using built-in Icons.person fallback
+
+  fonts:
+    - family: NotoSans
+      fonts:
+        - asset: assets/fonts/NotoSans.ttf
