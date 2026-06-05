@@ -1,0 +1,79 @@
+# ===============================
+# SYSTEM FILES
+# ===============================
+.DS_Store
+*.swp
+*.log
+*.tmp
+
+# ===============================
+# EDITOR / IDE
+# ===============================
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+
+# ===============================
+# FLUTTER & DART
+# ===============================
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.pub/
+build/
+coverage/
+
+# ===============================
+# ANDROID / IOS BUILD OUTPUTS
+# ===============================
+/android/app/debug
+/android/app/profile
+/android/app/release
+**/ios/Flutter/.last_build_id
+
+# ===============================
+# NODE / BACKEND
+# ===============================
+node_modules/
+npm-debug.log
+
+# ===============================
+# FIREBASE / CREDENTIALS (CRITICAL 🔐)
+# ===============================
+
+# Firebase Admin SDK KEYS (NEVER COMMIT)
+sda-youth-app-firebase-adminsdk-*.json
+
+# Any generic service account keys
+*serviceAccount*.json
+
+# Firebase config files if sensitive
+firebase-admin-setup/
+firebase-admin-setup/serviceAccountKey.json
+
+# ===============================
+# APP SECRETS / CONFIG
+# ===============================
+
+# If you store secrets locally
+.env
+.env.local
+.env.*.local
+
+# ===============================
+# OPTIONAL (KEEP OR REMOVE BASED ON YOUR PROJECT)
+# ===============================
+
+# If firebase config is generated (keep ignored if private)
+# lib/core/firebase_options.dart
+
+# ===============================
+# MISC
+# ===============================
+.history
+.svn/
+.build/
