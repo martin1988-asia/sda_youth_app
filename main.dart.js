@@ -9952,7 +9952,7 @@ s=new A.VW(new A.aP(new A.ad(s,t.V),t.h),null)
 $.bN().m(0,s,r)
 return s},
 blF(a){var s,r,q
-$.GG.m(0,"flutter-fire-auth","6.5.1")
+$.GG.m(0,"flutter-fire-auth","6.5.2")
 A.alB("auth",new A.ali())
 s=A.b8x()
 A.R(s,$.Sl(),!0)
@@ -58854,13 +58854,13 @@ for(;;)switch(s){case 0:k=v.G
 if(k.firebase_core!=null){s=1
 break}o=A.aM(k.flutterfire_web_sdk_version)
 if(o==null)o=null
-n=o==null?"12.13.0":o
+n=o==null?"12.14.0":o
 m=p.gauo()
 k=$.aej()
 l=A.v(k).i("bT<2>")
 s=3
 return A.h(A.iz(A.j9(new A.bT(k,l),new A.alu(p,m,n),l.i("y.E"),t.F),t.H),$async$DP)
-case 3:$.GG.m(0,"flutter-fire-core","4.9.0")
+case 3:$.GG.m(0,"flutter-fire-core","4.10.0")
 $.GG.aA(0,A.bw1())
 case 1:return A.o(q,r)}})
 return A.p($async$DP,r)},
@@ -122909,7 +122909,7 @@ j=t.N
 s=$.bft()
 r=$.bN()
 r.m(0,new A.aFE(A.z(j,t.Yt)),s)
-$.GG.m(0,"flutter-fire-fst","6.4.1")
+$.GG.m(0,"flutter-fire-fst","6.5.0")
 A.alB("firestore",l)
 s=A.b8A(l,l)
 A.R(s,$.b17(),!0)
@@ -122918,7 +122918,7 @@ s=$.bfF()
 q=new A.aic()
 r.m(0,q,s)
 A.R(q,s,!1)
-$.GG.m(0,"flutter-fire-analytics","12.4.1")
+$.GG.m(0,"flutter-fire-analytics","12.4.2")
 A.alB("analytics",l)
 s=A.b8t(l,l)
 A.R(s,$.aei(),!0)
@@ -122929,7 +122929,7 @@ q=new A.als()
 r.m(0,q,s)
 A.R(q,s,!0)
 $.blJ=q
-$.GG.m(0,"flutter-fire-gcs","13.4.1")
+$.GG.m(0,"flutter-fire-gcs","13.4.2")
 A.alB("storage",l)
 q=$.aek()
 s=new A.v2(l,6e5,12e4,l,"")
