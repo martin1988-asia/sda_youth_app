@@ -14,7 +14,7 @@ import 'package:video_player/video_player.dart';
 
 import '../../services/follow_service.dart';
 import '../../services/private_chat_service.dart';
-import '../../messages/chat_page.dart';
+import '../../features/messages/chat_thread_page.dart';
 import '../../widgets/post_card.dart';
 import '../../core/theme.dart';
 import '../reels/reels_page.dart';
@@ -308,9 +308,9 @@ Future<void> _updateProfileImage() async {
                                       Navigator.push(
                                         context,
                                         MaterialPageRoute(
-                                          builder: (_) => ChatPage(
+                                          builder: (_) => ChatThreadPage(
                                             conversationId: convId,
-                                            otherUserId: widget.userId,
+                                            otherUserId: userId,
                                             otherUserName: name,
                                             otherUserPhoto: imageUrl ?? '',
                                           ),
